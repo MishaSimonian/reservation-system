@@ -1,5 +1,6 @@
 package com.reservation_system;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
@@ -81,7 +82,7 @@ public class ReservationService {
         reservationMap.remove(id);
     }
 
-    public Object approveReservation(Long id) {
+    public ResponseEntity approveReservation(Long id) {
         return null;
     }
 }
