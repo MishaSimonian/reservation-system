@@ -1,10 +1,9 @@
 package com.reservation_system;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
+
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Service
@@ -13,20 +12,26 @@ public class ReservationService {
     private final Map<Long, Reservation> reservationMap;
     private final AtomicLong idCounter;
 
-    public ReservationService() {
+    private final ReservationRepository repository;
+
+    public ReservationService(ReservationRepository repository) {
+        this.repository = repository;
         reservationMap = new HashMap<>();
         idCounter = new AtomicLong();
     }
 
     public Reservation getReservationById(Long id) {
-        if(!reservationMap.containsKey(id)) {
-            throw new NoSuchElementException("Not found reservation by id: " + id);
-        }
-        return reservationMap.get(id);
+        ReservationEntity reservationEntity = repository.findById(id).orElseThrow(() -> new EntityNotFoundException("Not found reservation by id: " + id));
+
+        return toDomainReservation(reservationEntity);
     }
 
     public List<Reservation> findAllReservations() {
-        return reservationMap.values().stream().toList();
+
+        List<ReservationEntity> allEntities = repository.findAll();
+
+        return allEntities.stream()
+                .map(this::toDomainReservation).toList();
     }
 
     public Reservation createReservation(Reservation reservationToCreate) {
@@ -38,8 +43,8 @@ public class ReservationService {
             throw new IllegalArgumentException("Status should be empty");
         }
 
-        var newReservation = new Reservation(
-                idCounter.incrementAndGet(),
+        var entityToSave = new ReservationEntity(
+                null,
                 reservationToCreate.userId(),
                 reservationToCreate.roomId(),
                 reservationToCreate.startDate(),
@@ -47,31 +52,31 @@ public class ReservationService {
                 ReservationStatus.PENDING
         );
 
-        reservationMap.put(newReservation.id(), newReservation);
-        return newReservation;
+        var savedEntity = repository.save(entityToSave);
+        return toDomainReservation(savedEntity);
     }
 
     public Reservation updateReservation(Long id, Reservation reservationToUpdate) {
-        if(!reservationMap.containsKey(id)) {
-            throw new NoSuchElementException("Not found reservation by id: " + id);
-        }
+
+        var reservationEntity = repository.findById(id).orElseThrow(() -> new EntityNotFoundException("Not found reservation by id: " + id));
 
         var reservation = reservationMap.get(id);
-        if(reservation.status() != ReservationStatus.PENDING) {
-            throw new IllegalStateException("Cannot modify reservation: status=" + reservation.status());
+        if(reservationEntity.getStatus() != ReservationStatus.PENDING) {
+            throw new IllegalStateException("Cannot modify reservation: status=" + reservationEntity.getStatus());
         }
 
-        var updatedReservation = new Reservation(
-                reservation.id(),
-                reservationToUpdate.userId(),
-                reservationToUpdate.roomId(),
-                reservationToUpdate.startDate(),
-                reservationToUpdate.endDate(),
+        var updatedReservation = new ReservationEntity(
+                reservationEntity.getId(),
+                reservationEntity.getUserId(),
+                reservationEntity.getRoomId(),
+                reservationEntity.getStartDate(),
+                reservationEntity.getEndDate(),
                 ReservationStatus.PENDING
         );
 
-        reservationMap.put(reservation.id(), updatedReservation);
-        return updatedReservation;
+        var reservationToSave = repository.save(updatedReservation);
+
+        return toDomainReservation(reservationToSave);
     }
 
     public void deleteReservation(Long id) {
@@ -124,5 +129,16 @@ public class ReservationService {
             }
         }
         return false;
+    }
+
+    private Reservation toDomainReservation(ReservationEntity reservationEntity) {
+        return new Reservation(
+                reservationEntity.getId(),
+                reservationEntity.getUserId(),
+                reservationEntity.getRoomId(),
+                reservationEntity.getStartDate(),
+                reservationEntity.getEndDate(),
+                reservationEntity.getStatus()
+        );
     }
 }

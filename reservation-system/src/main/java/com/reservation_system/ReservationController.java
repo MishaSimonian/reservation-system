@@ -48,7 +48,7 @@ public class ReservationController {
 
     @PutMapping("/{id}")
     public ResponseEntity<Reservation> updateReservation(@PathVariable("id") Long id, @RequestBody Reservation reservationToUpdate) {
-        log.info("Called updateReservation id={}, reservationToUpdate", id, reservationToUpdate);
+        log.info("Called updateReservation id={}, reservationToUpdate={}", id, reservationToUpdate);
         var updated = reservationService.updateReservation(id, reservationToUpdate);
 
         return ResponseEntity.ok(updated);
