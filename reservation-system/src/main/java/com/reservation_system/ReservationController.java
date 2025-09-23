@@ -1,5 +1,6 @@
 package com.reservation_system;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -27,7 +28,7 @@ public class ReservationController {
         try {
             return ResponseEntity.status(HttpStatus.OK)
                     .body(reservationService.getReservationById(id));
-        } catch (NoSuchElementException e) {
+        } catch (EntityNotFoundException e) {
             return ResponseEntity.status(404).build();
         }
     }
@@ -54,11 +55,11 @@ public class ReservationController {
         return ResponseEntity.ok(updated);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id}/cancel")
     public ResponseEntity<Void> deleteReservation(@PathVariable("id") Long id) {
         log.info("Called deleteReservation id={}", id);
         try {
-            reservationService.deleteReservation(id);
+            reservationService.cancelReservation(id);
             return ResponseEntity.ok().build();
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(404).build();
